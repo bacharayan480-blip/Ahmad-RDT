@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام خدمة العملاء - مغسلة سيارات</title>
+  <style>
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      background: #f4f7fa;
+      margin: 0;
+      color: #333;
+    }
+    header {
+      background: #0d6efd;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { margin: 0; font-size: 18px; }
+    header button {
+      background: white;
+      color: #0d6efd;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 { margin-top: 0; color: #0d6efd; }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button.primary {
+      background: #0d6efd;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .card {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      border: 1px solid #ddd;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚗 نظام تنظيم مغسلة السيارات</h1>
+  <button onclick="toggleSearch()">ابحث عن سيارتك</button>
+</header>
+
+<div class="container hidden" id="searchSection">
+  <h2>🔍 البحث عن سيارة</h2>
+  <input type="number" id="searchId" placeholder="أدخل ID السيارة (4 أرقام)" />
+  <button class="primary" onclick="searchCar()">بحث</button>
+  <div id="searchResult"></div>
+</div>
+
+<div class="container" id="adminLogin">
+  <h2>🔐 دخول صاحب المحل</h2>
+  <input type="password" id="adminPass" placeholder="كلمة المرور" />
+  <button class="primary" onclick="loginAdmin()">دخول</button>
+</div>
+
+<div class="container hidden" id="adminPanel">
+  <h2>⚙️ لوحة التحكم</h2>
+  <input id="workerName" placeholder="اسم العامل" />
+  <input id="carType" placeholder="نوع السيارة" />
+  <input id="phoneNumber" placeholder="رقم هاتف الزبون" />
+  <input id="exitDate" placeholder="موعد خروج السيارة" />
+  <button class="primary" onclick="addCar()">➕ إضافة سيارة</button>
+  <div id="adminList"></div>
+</div>
+
+<script>
+  const PASSWORD = "RDT";
+  let cars = JSON.parse(localStorage.getItem("cars") || "[]");
+
+  function toggleSearch() {
+    document.getElementById('searchSection').classList.toggle('hidden');
+  }
+
+  function loginAdmin() {
+    const pass = document.getElementById('adminPass').value.trim();
+    if (pass === PASSWORD) {
+      document.getElementById('adminLogin').classList.add('hidden');
+      document.getElementById('adminPanel').classList.remove('hidden');
+      renderAdmin();
+    } else {
+      alert('❌ كلمة المرور غير صحيحة');
+    }
+  }
+
+  function generateId() {
+    let id;
+    do {
+      id = Math.floor(1000 + Math.random() * 9000);
+    } while (cars.some(c => c.id === id));
+    return id;
+  }
+
+  function addCar() {
+    const worker = workerName.value.trim();
+    const car = carType.value.trim();
+    const phone = phoneNumber.value.trim();
+    const date = exitDate.value.trim();
+
+    if (!worker || !car || !phone || !date) {
+      alert('⚠️ يرجى ملء جميع الحقول');
+      return;
+    }
+
+    const newCar = {
+      id: generateId(),
+      worker,
+      car,
+      phone,
+      date
+    };
+
+    cars.push(newCar);
+    localStorage.setItem('cars', JSON.stringify(cars));
+    renderAdmin();
+
+    workerName.value = '';
+    carType.value = '';
+    phoneNumber.value = '';
+    exitDate.value = '';
+
+    alert('✅ تم إضافة السيارة بنجاح. ID = ' + newCar.id);
+  }
+
+  function renderAdmin() {
+    const adminList = document.getElementById('adminList');
+    adminList.innerHTML = '';
+    cars.forEach((c, index) => {
+      adminList.innerHTML += `
+        <div class="card">
+          <b>ID:</b> ${c.id}<br>
+          👷 العامل: ${c.worker}<br>
+          🚗 السيارة: ${c.car}<br>
+          📞 الهاتف: ${c.phone}<br>
+          ⏰ الخروج: ${c.date}<br><br>
+          <button onclick="deleteCar(${index})" style="background:#dc3545;color:white;border:none;padding:8px;border-radius:6px;cursor:pointer;">🗑️ حذف العميل</button>
+        </div>`;
+    });
+  }
+
+  function deleteCar(index) {
+    if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
+      cars.splice(index, 1);
+      localStorage.setItem('cars', JSON.stringify(cars));
+      renderAdmin();
+    }
+  }
+
+  function searchCar() {
+    const id = Number(document.getElementById('searchId').value);
+    const car = cars.find(c => c.id === id);
+    const searchResult = document.getElementById('searchResult');
+    if (!car) {
+      searchResult.innerHTML = '❌ لا توجد سيارة بهذا الرقم';
+    } else {
+      searchResult.innerHTML = `
+        <div class="card">
+          👷 <b>العامل:</b> ${car.worker}<br>
+          🚗 <b>السيارة:</b> ${car.car}<br>
+          📞 <b>الهاتف:</b> ${car.phone}<br>
+          ⏰ <b>موعد الخروج:</b> ${car.date}
+        </div>`;
+    }
+  }
+</script>
+
+</body>
+</html>
